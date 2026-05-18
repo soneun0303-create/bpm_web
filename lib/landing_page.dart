@@ -6,25 +6,81 @@ import 'auth.dart';
 
 const double _maxW = 1120;
 
-class LandingPage extends StatelessWidget {
+/// 상단/푸터 메뉴가 가리키는 섹션
+enum _Section { features, calc, goals, how, cta }
+
+/// 자손 위젯이 섹션으로 스크롤할 수 있게 해주는 스코프
+class _NavScope extends InheritedWidget {
+  const _NavScope({required this.scrollTo, required super.child});
+  final void Function(_Section) scrollTo;
+
+  static _NavScope of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_NavScope>()!;
+
+  @override
+  bool updateShouldNotify(_NavScope oldWidget) => false;
+}
+
+class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
   @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+  final _scrollController = ScrollController();
+  final Map<_Section, GlobalKey> _keys = {
+    _Section.features: GlobalKey(),
+    _Section.calc: GlobalKey(),
+    _Section.goals: GlobalKey(),
+    _Section.how: GlobalKey(),
+    _Section.cta: GlobalKey(),
+  };
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollTo(_Section s) {
+    final ctx = _keys[s]?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.0,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SingleChildScrollView(
-        child: Column(
-          children: const [
-            _NavBar(),
-            _Hero(),
-            _Features(),
-            _Calculator(),
-            _Goals(),
-            _HowItWorks(),
-            _CtaSection(),
-            _Footer(),
-          ],
+    return _NavScope(
+      scrollTo: _scrollTo,
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            children: [
+              const _NavBar(),
+              const _Hero(),
+              KeyedSubtree(
+                  key: _keys[_Section.features]!, child: const _Features()),
+              KeyedSubtree(
+                  key: _keys[_Section.calc]!, child: const _Calculator()),
+              KeyedSubtree(
+                  key: _keys[_Section.goals]!, child: const _Goals()),
+              KeyedSubtree(
+                  key: _keys[_Section.how]!, child: const _HowItWorks()),
+              KeyedSubtree(
+                  key: _keys[_Section.cta]!, child: const _CtaSection()),
+              const _Footer(),
+            ],
+          ),
         ),
       ),
     );
@@ -153,10 +209,18 @@ class _NavBar extends StatelessWidget {
               const _Logo(),
               const Spacer(),
               if (!narrow) ...[
-                _NavLink('기능'),
-                _NavLink('심박수 존'),
-                _NavLink('운동 목표'),
-                _NavLink('사용법'),
+                _NavLink('기능',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.features)),
+                _NavLink('심박수 존',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.calc)),
+                _NavLink('운동 목표',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.goals)),
+                _NavLink('사용법',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.how)),
                 const SizedBox(width: 28),
               ],
               StreamBuilder<User?>(
@@ -196,7 +260,8 @@ class _NavBar extends StatelessWidget {
                   label: '앱 받기',
                   small: true,
                   primary: true,
-                  onTap: () {}),
+                  onTap: () =>
+                      _NavScope.of(context).scrollTo(_Section.cta)),
             ],
           ),
         ),
@@ -206,18 +271,23 @@ class _NavBar extends StatelessWidget {
 }
 
 class _NavLink extends StatelessWidget {
-  const _NavLink(this.label);
+  const _NavLink(this.label, {this.onTap});
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 17),
-      child: Text(label,
-          style: const TextStyle(
-              color: AppColors.textMid,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w600)),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 8),
+        child: Text(label,
+            style: const TextStyle(
+                color: AppColors.textMid,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600)),
+      ),
     );
   }
 }
@@ -323,8 +393,12 @@ class _HeroCopy extends StatelessWidget {
                 label: '앱 다운로드',
                 icon: '⬇',
                 primary: true,
-                onTap: () {}),
-            _PillButton(label: '내 심박수 존 보기', onTap: () {}),
+                onTap: () =>
+                    _NavScope.of(context).scrollTo(_Section.cta)),
+            _PillButton(
+                label: '내 심박수 존 보기',
+                onTap: () =>
+                    _NavScope.of(context).scrollTo(_Section.calc)),
           ],
         ),
         const SizedBox(height: 46),
@@ -1173,7 +1247,10 @@ class _CtaSection extends StatelessWidget {
                       icon: '📱',
                       primary: true,
                       onTap: () {}),
-                  _PillButton(label: '먼저 체험해보기', onTap: () {}),
+                  _PillButton(
+                      label: '먼저 체험해보기',
+                      onTap: () =>
+                          _NavScope.of(context).scrollTo(_Section.calc)),
                 ],
               ),
             ],
@@ -1200,18 +1277,26 @@ class _Footer extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 16,
           runSpacing: 16,
-          children: const [
-            _Logo(size: 16),
+          children: [
+            const _Logo(size: 16),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _NavLink('기능'),
-                _NavLink('심박수 존'),
-                _NavLink('운동 목표'),
-                _NavLink('사용법'),
+                _NavLink('기능',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.features)),
+                _NavLink('심박수 존',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.calc)),
+                _NavLink('운동 목표',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.goals)),
+                _NavLink('사용법',
+                    onTap: () =>
+                        _NavScope.of(context).scrollTo(_Section.how)),
               ],
             ),
-            Text('© 2026 BPM Routine. Flutter로 제작.',
+            const Text('© 2026 BPM Routine. Flutter로 제작.',
                 style: TextStyle(
                     color: AppColors.textMuted, fontSize: 13.5)),
           ],
