@@ -315,6 +315,13 @@ class _LoginPageState extends State<LoginPage> {
       await signIn(email, pw);
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    } on EmailNotVerifiedException {
+      setState(() {
+        _ok = false;
+        _msg = '아직 이메일 인증이 완료되지 않았어요.\n'
+            '방금 인증 메일을 다시 보냈으니, 메일함(스팸함도)에서 링크를 누른 뒤 다시 로그인해 주세요.';
+        _loading = false;
+      });
     } on FirebaseAuthException catch (e) {
       setState(() {
         _ok = false;
@@ -527,7 +534,8 @@ class _SignupPageState extends State<SignupPage> {
                   fontWeight: FontWeight.w800)),
           content: Text(
             '$email 로 인증 메일을 보냈어요.\n'
-            '메일함(스팸함도 확인)에서 링크를 눌러 이메일 인증을 완료해 주세요.',
+            '메일함(스팸함도 확인)에서 링크를 눌러 이메일 인증을 완료한 뒤,\n'
+            '로그인하면 서비스를 이용할 수 있어요. (인증 전에는 로그인되지 않습니다)',
             style: const TextStyle(
                 color: AppColors.textMid, fontSize: 14, height: 1.55),
           ),
@@ -543,7 +551,7 @@ class _SignupPageState extends State<SignupPage> {
         ),
       );
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
     } on FirebaseAuthException catch (e) {
       setState(() {
         _ok = false;

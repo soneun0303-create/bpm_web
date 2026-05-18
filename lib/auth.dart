@@ -20,21 +20,39 @@ String authErrorMessage(String code) {
   return map[code] ?? '오류가 발생했습니다. ($code)';
 }
 
-Future<UserCredential> signIn(String email, String password) {
-  return FirebaseAuth.instance
-      .signInWithEmailAndPassword(email: email, password: password);
+/// 이메일 미인증 상태로 로그인을 시도했을 때 던지는 예외
+class EmailNotVerifiedException implements Exception {
+  EmailNotVerifiedException(this.email);
+  final String email;
 }
 
-Future<UserCredential> signUp(
-    String name, String email, String password) async {
+Future<UserCredential> signIn(String email, String password) async {
+  final auth = FirebaseAuth.instance;
+  final cred = await auth.signInWithEmailAndPassword(
+      email: email, password: password);
+  // 이메일 인증을 완료하지 않았으면 로그인 차단
+  if (cred.user != null && !cred.user!.emailVerified) {
+    auth.setLanguageCode('ko');
+    try {
+      await cred.user!.sendEmailVerification(); // 인증 메일 재발송
+    } catch (_) {
+      // 재발송 실패(예: too-many-requests)는 무시하고 차단만
+    }
+    await auth.signOut();
+    throw EmailNotVerifiedException(email);
+  }
+  return cred;
+}
+
+/// 회원가입: 계정 생성 + 인증 메일 발송 후 로그아웃 (인증 전엔 로그인 불가)
+Future<void> signUp(String name, String email, String password) async {
   final auth = FirebaseAuth.instance;
   auth.setLanguageCode('ko'); // 인증/재설정 메일을 한국어로
   final cred = await auth.createUserWithEmailAndPassword(
       email: email, password: password);
   await cred.user?.updateDisplayName(name);
-  // 회원가입 시 이메일 인증 메일 발송
   await cred.user?.sendEmailVerification();
-  return cred;
+  await auth.signOut(); // 이메일 인증 전에는 로그인 상태로 두지 않음
 }
 
 /// 현재 로그인한 사용자에게 인증 메일 재발송
