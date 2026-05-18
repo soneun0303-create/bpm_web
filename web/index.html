@@ -1,19 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
@@ -29,20 +16,90 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <!-- 소셜 공유 미리보기 (카카오톡/트위터 등) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BPM Routine — 심박수로 완성하는 유산소 루틴">
+  <meta property="og:description" content="나이와 운동 목표만 입력하면 목표 심박수 구간과 운동 시간을 계산해주는 가이드 앱.">
+  <meta property="og:image" content="icons/Icon-512.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="BPM Routine — 심박수로 완성하는 유산소 루틴">
+  <meta name="twitter:description" content="심박수 기반 유산소 루틴 가이드.">
+
   <!-- Pretendard 폰트는 Flutter 앱에 직접 번들됨 (pubspec.yaml fonts 참고) -->
 
   <title>BPM Routine — 심박수로 완성하는 유산소 루틴</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0B0D11; }
+
+    /* 앱 로딩 전 브랜딩 화면 — 스크린샷/썸네일이 언제 찍혀도 깔끔하게.
+       시스템 폰트에 의존하지 않도록 영문/기호만 사용. */
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #0B0D11;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      transition: opacity .45s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+    #splash .badge {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    #splash .mark {
+      width: 54px; height: 54px;
+      border-radius: 16px;
+      background: #D4FF4D;
+      color: #0A0C10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+    }
+    #splash .name {
+      color: #F4F6F8;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    #splash .name b { color: #D4FF4D; }
+    #splash .ring {
+      width: 30px; height: 30px;
+      border: 3px solid rgba(212,255,77,0.18);
+      border-top-color: #D4FF4D;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <div id="splash">
+    <div class="badge">
+      <div class="mark">&hearts;</div>
+      <div class="name">BPM&nbsp;Routine<b>.</b></div>
+    </div>
+    <div class="ring"></div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <script>
+    // Flutter 첫 프레임이 그려지면 로딩 화면을 부드럽게 제거
+    window.addEventListener('flutter-first-frame', function () {
+      var s = document.getElementById('splash');
+      if (s) {
+        s.style.opacity = '0';
+        setTimeout(function () { s.remove(); }, 500);
+      }
+    });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
