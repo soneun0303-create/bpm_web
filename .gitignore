@@ -1,0 +1,12 @@
+# OS / 에디터
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+
+# 의존성 (혹시 생길 경우)
+node_modules/
+
+# Firebase 로컬 캐시
+.firebase/
+firebase-debug.log

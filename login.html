@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>로그인 — BPM Routine</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+
+<div class="auth-card">
+  <a class="brand" href="index.html">
+    <span class="mark">♥</span> BPM&nbsp;Routine
+  </a>
+
+  <h1>로그인</h1>
+  <p class="sub">계정에 로그인하고 운동 루틴을 이어가세요.</p>
+
+  <div id="msg" class="msg"></div>
+
+  <form id="loginForm" novalidate>
+    <div class="field">
+      <label for="email">이메일</label>
+      <input type="email" id="email" autocomplete="email"
+             placeholder="you@example.com" required />
+    </div>
+    <div class="field">
+      <label for="pw">비밀번호</label>
+      <input type="password" id="pw" autocomplete="current-password"
+             placeholder="••••••••" required />
+    </div>
+    <button type="submit" class="btn-submit" id="submitBtn">로그인</button>
+  </form>
+
+  <p class="alt">아직 계정이 없으신가요? <a href="signup.html">회원가입</a></p>
+  <a class="back-home" href="index.html">← 홈으로 돌아가기</a>
+</div>
+
+<script type="module">
+  import { auth, authErrorMessage } from "./firebase-config.js";
+  import {
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const form = document.getElementById("loginForm");
+  const msg = document.getElementById("msg");
+  const btn = document.getElementById("submitBtn");
+
+  // 이미 로그인된 상태면 홈으로
+  onAuthStateChanged(auth, (user) => {
+    if (user) window.location.replace("index.html");
+  });
+
+  function showError(text) {
+    msg.className = "msg error";
+    msg.textContent = text;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    const pw = document.getElementById("pw").value;
+
+    if (!email || !pw) {
+      showError("이메일과 비밀번호를 모두 입력하세요.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "로그인 중…";
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+      msg.className = "msg ok";
+      msg.textContent = "로그인 성공! 이동 중…";
+      window.location.replace("index.html");
+    } catch (err) {
+      showError(authErrorMessage(err.code));
+      btn.disabled = false;
+      btn.textContent = "로그인";
+    }
+  });
+</script>
+
+</body>
+</html>
