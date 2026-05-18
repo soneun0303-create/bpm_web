@@ -27,10 +27,35 @@ Future<UserCredential> signIn(String email, String password) {
 
 Future<UserCredential> signUp(
     String name, String email, String password) async {
-  final cred = await FirebaseAuth.instance
-      .createUserWithEmailAndPassword(email: email, password: password);
+  final auth = FirebaseAuth.instance;
+  auth.setLanguageCode('ko'); // 인증/재설정 메일을 한국어로
+  final cred = await auth.createUserWithEmailAndPassword(
+      email: email, password: password);
   await cred.user?.updateDisplayName(name);
+  // 회원가입 시 이메일 인증 메일 발송
+  await cred.user?.sendEmailVerification();
   return cred;
+}
+
+/// 현재 로그인한 사용자에게 인증 메일 재발송
+Future<void> resendVerification() async {
+  final auth = FirebaseAuth.instance;
+  auth.setLanguageCode('ko');
+  await auth.currentUser?.sendEmailVerification();
+}
+
+/// 사용자 정보 새로고침 후 이메일 인증 여부 반환
+Future<bool> refreshEmailVerified() async {
+  final user = FirebaseAuth.instance.currentUser;
+  await user?.reload();
+  return FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+}
+
+/// 비밀번호 재설정 메일 발송
+Future<void> sendPasswordReset(String email) async {
+  final auth = FirebaseAuth.instance;
+  auth.setLanguageCode('ko');
+  await auth.sendPasswordResetEmail(email: email);
 }
 
 Future<void> signOutUser() => FirebaseAuth.instance.signOut();

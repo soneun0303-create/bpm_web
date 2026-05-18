@@ -324,6 +324,87 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final emailCtrl = TextEditingController(text: _email.text.trim());
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('비밀번호 찾기',
+            style: TextStyle(
+                color: AppColors.text,
+                fontSize: 18,
+                fontWeight: FontWeight.w800)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('가입한 이메일을 입력하면 비밀번호 재설정 링크를 보내드려요.',
+                style: TextStyle(
+                    color: AppColors.textMid,
+                    fontSize: 13.5,
+                    height: 1.5)),
+            const SizedBox(height: 14),
+            TextField(
+              controller: emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              style: const TextStyle(color: AppColors.text),
+              decoration: InputDecoration(
+                hintText: 'you@example.com',
+                hintStyle: const TextStyle(color: AppColors.textMuted),
+                filled: true,
+                fillColor: AppColors.bgSoft,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: AppColors.borderStrong),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('닫기',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final em = emailCtrl.text.trim();
+              if (em.isEmpty) {
+                messenger.showSnackBar(const SnackBar(
+                    content: Text('이메일을 입력하세요.')));
+                return;
+              }
+              Navigator.of(ctx).pop();
+              try {
+                await sendPasswordReset(em);
+                messenger.showSnackBar(const SnackBar(
+                    content: Text(
+                        '재설정 메일을 보냈어요. 메일함(스팸함도)을 확인하세요.')));
+              } on FirebaseAuthException catch (e) {
+                messenger.showSnackBar(
+                    SnackBar(content: Text(authErrorMessage(e.code))));
+              }
+            },
+            child: const Text('메일 보내기',
+                style: TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    emailCtrl.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return _AuthScaffold(
@@ -345,6 +426,20 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 6),
           _SubmitButton(
               label: '로그인', loading: _loading, onTap: _submit),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _forgotPassword,
+              style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+              child: const Text('비밀번호를 잊으셨나요?',
+                  style: TextStyle(
+                      color: AppColors.textMid, fontSize: 13)),
+            ),
+          ),
           _AltLink(
             text: '아직 계정이 없으신가요? ',
             linkText: '회원가입',
@@ -419,6 +514,34 @@ class _SignupPageState extends State<SignupPage> {
     });
     try {
       await signUp(name, email, pw);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          backgroundColor: AppColors.card,
+          title: const Text('가입 완료 🎉',
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800)),
+          content: Text(
+            '$email 로 인증 메일을 보냈어요.\n'
+            '메일함(스팸함도 확인)에서 링크를 눌러 이메일 인증을 완료해 주세요.',
+            style: const TextStyle(
+                color: AppColors.textMid, fontSize: 14, height: 1.55),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인',
+                  style: TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
     } on FirebaseAuthException catch (e) {

@@ -67,6 +67,7 @@ class _LandingPageState extends State<LandingPage> {
           child: Column(
             children: [
               const _NavBar(),
+              const _VerifyBanner(),
               const _Hero(),
               KeyedSubtree(
                   key: _keys[_Section.features]!, child: const _Features()),
@@ -1302,6 +1303,86 @@ class _Footer extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 로그인했지만 이메일 미인증인 경우 상단에 표시되는 안내바
+class _VerifyBanner extends StatefulWidget {
+  const _VerifyBanner();
+  @override
+  State<_VerifyBanner> createState() => _VerifyBannerState();
+}
+
+class _VerifyBannerState extends State<_VerifyBanner> {
+  bool _busy = false;
+
+  Future<void> _resend() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      await resendVerification();
+      messenger.showSnackBar(const SnackBar(
+          content: Text('인증 메일을 다시 보냈어요. 메일함(스팸함도)을 확인하세요.')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text('잠시 후 다시 시도해 주세요.')));
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  Future<void> _refresh() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    final verified = await refreshEmailVerified();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    messenger.showSnackBar(SnackBar(
+        content: Text(verified
+            ? '이메일 인증이 완료됐어요! 🎉'
+            : '아직 인증되지 않았어요. 메일의 링크를 눌러주세요.')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snap) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null || user.emailVerified) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          width: double.infinity,
+          color: const Color(0x1AD4FF4D),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: _Wrap(
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 14,
+              runSpacing: 10,
+              children: [
+                const Text(
+                    '✉️  이메일 인증이 필요해요. 받은 메일의 링크를 눌러 인증해 주세요.',
+                    style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
+                _PillButton(
+                    label: _busy ? '처리 중…' : '인증 메일 다시 보내기',
+                    small: true,
+                    onTap: _busy ? () {} : _resend),
+                _PillButton(
+                    label: '인증했어요 · 새로고침',
+                    small: true,
+                    primary: true,
+                    onTap: _busy ? () {} : _refresh),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
