@@ -13,9 +13,19 @@ String authErrorMessage(String code) {
     'too-many-requests': '시도가 너무 많습니다. 잠시 후 다시 시도하세요.',
     'network-request-failed': '네트워크 연결을 확인하세요.',
     'operation-not-allowed':
-        '이메일/비밀번호 로그인이 비활성화되어 있습니다. Firebase 콘솔에서 사용 설정하세요.',
+        '이 로그인 방식이 비활성화되어 있습니다. Firebase 콘솔 > Authentication 에서 사용 설정하세요.',
     'configuration-not-found':
-        'Firebase 인증이 아직 설정되지 않았습니다. 콘솔 > Authentication 에서 이메일/비밀번호를 사용 설정하세요.',
+        'Firebase 인증이 아직 설정되지 않았습니다. 콘솔 > Authentication 에서 로그인 방식을 사용 설정하세요.',
+    // 구글 팝업 로그인 관련
+    'popup-closed-by-user': '로그인 창이 닫혔어요. 다시 시도해 주세요.',
+    'cancelled-popup-request': '이전 로그인 요청이 취소됐어요. 다시 시도해 주세요.',
+    'popup-blocked':
+        '브라우저가 팝업을 차단했어요. 팝업을 허용한 뒤 다시 시도해 주세요.',
+    'web-context-canceled': '로그인이 취소됐어요.',
+    'account-exists-with-different-credential':
+        '이미 다른 방식으로 가입된 이메일이에요. 기존 방식(이메일/비밀번호)으로 로그인해 주세요.',
+    'unauthorized-domain':
+        '이 도메인은 아직 Firebase 승인 도메인에 없어요. 콘솔 > Authentication > 설정 > 승인된 도메인에 추가하세요.',
   };
   return map[code] ?? '오류가 발생했습니다. ($code)';
 }
@@ -42,6 +52,13 @@ Future<UserCredential> signIn(String email, String password) async {
     throw EmailNotVerifiedException(email);
   }
   return cred;
+}
+
+/// 구글 계정으로 로그인 (웹: 팝업 방식). 구글 이메일은 이미 인증된 상태라 별도 인증 불필요.
+Future<UserCredential> signInWithGoogle() {
+  final provider = GoogleAuthProvider()
+    ..setCustomParameters({'prompt': 'select_account'});
+  return FirebaseAuth.instance.signInWithPopup(provider);
 }
 
 /// 회원가입: 계정 생성 + 인증 메일 발송 후 로그아웃 (인증 전엔 로그인 불가)

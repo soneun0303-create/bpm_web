@@ -276,6 +276,76 @@ class _AltLink extends StatelessWidget {
   }
 }
 
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      child: Row(
+        children: const [
+          Expanded(child: Divider(color: AppColors.borderStrong)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: Text('또는',
+                style: TextStyle(
+                    color: AppColors.textMuted, fontSize: 13)),
+          ),
+          Expanded(child: Divider(color: AppColors.borderStrong)),
+        ],
+      ),
+    );
+  }
+}
+
+/// 구글 로그인 버튼 (밝은 배경 + G 마크)
+class _GoogleButton extends StatelessWidget {
+  const _GoogleButton({required this.onTap, required this.loading});
+  final VoidCallback onTap;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: loading ? null : onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Color(0xFF4285F4)),
+                  child: const Text('G',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 10),
+                const Text('Google 계정으로 계속하기',
+                    style: TextStyle(
+                        color: Color(0xFF1A1A1A),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ===================== 로그인 =====================
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -412,6 +482,30 @@ class _LoginPageState extends State<LoginPage> {
     emailCtrl.dispose();
   }
 
+  Future<void> _google() async {
+    setState(() {
+      _loading = true;
+      _msg = '';
+    });
+    try {
+      await signInWithGoogle();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _ok = false;
+        _msg = authErrorMessage(e.code);
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _ok = false;
+        _msg = 'Google 로그인 중 문제가 발생했어요. 다시 시도해 주세요.';
+        _loading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return _AuthScaffold(
@@ -447,6 +541,8 @@ class _LoginPageState extends State<LoginPage> {
                       color: AppColors.textMid, fontSize: 13)),
             ),
           ),
+          const _OrDivider(),
+          _GoogleButton(loading: _loading, onTap: _google),
           _AltLink(
             text: '아직 계정이 없으신가요? ',
             linkText: '회원가입',
@@ -561,6 +657,30 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
+  Future<void> _google() async {
+    setState(() {
+      _loading = true;
+      _msg = '';
+    });
+    try {
+      await signInWithGoogle();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _ok = false;
+        _msg = authErrorMessage(e.code);
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _ok = false;
+        _msg = 'Google 로그인 중 문제가 발생했어요. 다시 시도해 주세요.';
+        _loading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return _AuthScaffold(
@@ -588,6 +708,8 @@ class _SignupPageState extends State<SignupPage> {
           const SizedBox(height: 6),
           _SubmitButton(
               label: '회원가입', loading: _loading, onTap: _submit),
+          const _OrDivider(),
+          _GoogleButton(loading: _loading, onTap: _google),
           _AltLink(
             text: '이미 계정이 있으신가요? ',
             linkText: '로그인',
