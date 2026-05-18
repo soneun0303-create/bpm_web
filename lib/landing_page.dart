@@ -1383,35 +1383,96 @@ class _AccountMenuState extends State<_AccountMenu> {
   bool _busy = false;
 
   Future<void> _confirmDelete() async {
+    const phrase = '회원탈퇴';
+    final ctrl = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: const Text('회원 탈퇴',
-            style: TextStyle(
-                color: AppColors.text,
-                fontWeight: FontWeight.w800,
-                fontSize: 18)),
-        content: const Text(
-            '정말 탈퇴하시겠어요?\n계정과 정보가 삭제되며 되돌릴 수 없어요.',
-            style: TextStyle(
-                color: AppColors.textMid, fontSize: 14, height: 1.5)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소',
-                style: TextStyle(color: AppColors.textMuted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('탈퇴',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final matched = ctrl.text.trim() == phrase;
+          return AlertDialog(
+            backgroundColor: AppColors.card,
+            title: const Text('회원 탈퇴',
                 style: TextStyle(
-                    color: Color(0xFFFF6B6B),
-                    fontWeight: FontWeight.w700)),
-          ),
-        ],
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    '이 작업은 되돌릴 수 없어요.\n계정과 모든 정보가 영구 삭제됩니다.',
+                    style: TextStyle(
+                        color: AppColors.textMid,
+                        fontSize: 14,
+                        height: 1.5)),
+                const SizedBox(height: 16),
+                RichText(
+                  text: const TextSpan(
+                    style: TextStyle(
+                        color: AppColors.textMid,
+                        fontSize: 13.5,
+                        height: 1.5),
+                    children: [
+                      TextSpan(text: '계속하려면 아래 칸에 '),
+                      TextSpan(
+                          text: phrase,
+                          style: TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w800)),
+                      TextSpan(text: ' 라고 입력하세요.'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  onChanged: (_) => setLocal(() {}),
+                  style: const TextStyle(color: AppColors.text),
+                  decoration: InputDecoration(
+                    hintText: phrase,
+                    hintStyle:
+                        const TextStyle(color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.bgSoft,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                          color: AppColors.borderStrong),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.accent),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('취소',
+                    style: TextStyle(color: AppColors.textMuted)),
+              ),
+              TextButton(
+                onPressed:
+                    matched ? () => Navigator.pop(ctx, true) : null,
+                child: Text('탈퇴',
+                    style: TextStyle(
+                        color: matched
+                            ? const Color(0xFFFF6B6B)
+                            : AppColors.textMuted,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ],
+          );
+        },
       ),
     );
+    ctrl.dispose();
     if (ok == true) await _runDelete(null);
   }
 
