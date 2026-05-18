@@ -26,6 +26,8 @@ String authErrorMessage(String code) {
         '이미 다른 방식으로 가입된 이메일이에요. 기존 방식(이메일/비밀번호)으로 로그인해 주세요.',
     'unauthorized-domain':
         '이 도메인은 아직 Firebase 승인 도메인에 없어요. 콘솔 > Authentication > 설정 > 승인된 도메인에 추가하세요.',
+    'requires-recent-login':
+        '보안을 위해 다시 로그인한 뒤 탈퇴를 진행해 주세요.',
   };
   return map[code] ?? '오류가 발생했습니다. ($code)';
 }
@@ -94,3 +96,35 @@ Future<void> sendPasswordReset(String email) async {
 }
 
 Future<void> signOutUser() => FirebaseAuth.instance.signOut();
+
+/// 회원 탈퇴 시 비밀번호 재확인이 필요함을 알리는 신호
+class NeedsPasswordException implements Exception {}
+
+/// 회원 탈퇴 (계정 영구 삭제).
+/// Firebase는 민감 작업에 최근 로그인을 요구하므로 필요 시 재인증 후 재시도한다.
+Future<void> deleteAccount({String? password}) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+  try {
+    await user.delete();
+  } on FirebaseAuthException catch (e) {
+    if (e.code != 'requires-recent-login') rethrow;
+    final providers =
+        user.providerData.map((p) => p.providerId).toSet();
+    if (providers.contains('google.com')) {
+      final provider = GoogleAuthProvider()
+        ..setCustomParameters({'prompt': 'select_account'});
+      await user.reauthenticateWithPopup(provider);
+    } else if (providers.contains('password')) {
+      if (password == null || password.isEmpty) {
+        throw NeedsPasswordException();
+      }
+      final cred = EmailAuthProvider.credential(
+          email: user.email!, password: password);
+      await user.reauthenticateWithCredential(cred);
+    } else {
+      rethrow;
+    }
+    await user.delete();
+  }
+}

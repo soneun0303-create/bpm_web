@@ -236,24 +236,8 @@ class _NavBar extends StatelessWidget {
                           Navigator.pushNamed(context, '/login'),
                     );
                   }
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${user.displayName ?? user.email} 님',
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textMid,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(width: 10),
-                      _PillButton(
-                        label: '로그아웃',
-                        small: true,
-                        onTap: () => signOutUser(),
-                      ),
-                    ],
-                  );
+                  return _AccountMenu(
+                      label: '${user.displayName ?? user.email} 님');
                 },
               ),
               const SizedBox(width: 10),
@@ -1383,6 +1367,170 @@ class _VerifyBannerState extends State<_VerifyBanner> {
           ),
         );
       },
+    );
+  }
+}
+
+/// 로그인 상태일 때 네비바에 표시: 이름 + 로그아웃 + 회원 탈퇴
+class _AccountMenu extends StatefulWidget {
+  const _AccountMenu({required this.label});
+  final String label;
+  @override
+  State<_AccountMenu> createState() => _AccountMenuState();
+}
+
+class _AccountMenuState extends State<_AccountMenu> {
+  bool _busy = false;
+
+  Future<void> _confirmDelete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('회원 탈퇴',
+            style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w800,
+                fontSize: 18)),
+        content: const Text(
+            '정말 탈퇴하시겠어요?\n계정과 정보가 삭제되며 되돌릴 수 없어요.',
+            style: TextStyle(
+                color: AppColors.textMid, fontSize: 14, height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('탈퇴',
+                style: TextStyle(
+                    color: Color(0xFFFF6B6B),
+                    fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _runDelete(null);
+  }
+
+  Future<void> _runDelete(String? password) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      await deleteAccount(password: password);
+      messenger.showSnackBar(const SnackBar(
+          content: Text('계정이 삭제됐어요. 그동안 이용해 주셔서 감사합니다.')));
+      // authStateChanges가 로그아웃 상태로 갱신 → UI 자동 반영
+    } on NeedsPasswordException {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      final pw = await _askPassword();
+      if (pw != null && pw.isNotEmpty) await _runDelete(pw);
+      return;
+    } on FirebaseAuthException catch (e) {
+      messenger
+          .showSnackBar(SnackBar(content: Text(authErrorMessage(e.code))));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text('탈퇴 처리 중 문제가 발생했어요. 다시 시도해 주세요.')));
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  Future<String?> _askPassword() async {
+    final ctrl = TextEditingController();
+    final res = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('비밀번호 확인',
+            style: TextStyle(
+                color: AppColors.text,
+                fontWeight: FontWeight.w800,
+                fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('보안을 위해 비밀번호를 다시 입력해 주세요.',
+                style: TextStyle(
+                    color: AppColors.textMid, fontSize: 13.5)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              obscureText: true,
+              autofocus: true,
+              style: const TextStyle(color: AppColors.text),
+              onSubmitted: (v) => Navigator.pop(ctx, v),
+              decoration: InputDecoration(
+                hintText: '비밀번호',
+                hintStyle:
+                    const TextStyle(color: AppColors.textMuted),
+                filled: true,
+                fillColor: AppColors.bgSoft,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: AppColors.borderStrong),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            child: const Text('확인',
+                style: TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return res;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(widget.label,
+            style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textMid,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(width: 10),
+        _PillButton(
+            label: '로그아웃',
+            small: true,
+            onTap: () => signOutUser()),
+        const SizedBox(width: 4),
+        TextButton(
+          onPressed: _busy ? null : _confirmDelete,
+          style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+          child: Text(_busy ? '처리 중…' : '회원 탈퇴',
+              style: const TextStyle(
+                  color: AppColors.textMuted, fontSize: 12.5)),
+        ),
+      ],
     );
   }
 }
